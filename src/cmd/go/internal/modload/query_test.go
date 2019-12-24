@@ -17,7 +17,8 @@ import (
 	"cmd/go/internal/cfg"
 	"cmd/go/internal/modfetch"
 	"cmd/go/internal/modfetch/codehost"
-	"cmd/go/internal/module"
+
+	"golang.org/x/mod/module"
 )
 
 func TestMain(m *testing.M) {
@@ -63,7 +64,7 @@ var queryTests = []struct {
 		git add go.mod
 		git commit -m v1 go.mod
 		git tag start
-		for i in v0.0.0-pre1 v0.0.0 v0.0.1 v0.0.2 v0.0.3 v0.1.0 v0.1.1 v0.1.2 v0.3.0 v1.0.0 v1.1.0 v1.9.0 v1.9.9 v1.9.10-pre1 v1.9.10-pre2+metadata; do
+		for i in v0.0.0-pre1 v0.0.0 v0.0.1 v0.0.2 v0.0.3 v0.1.0 v0.1.1 v0.1.2 v0.3.0 v1.0.0 v1.1.0 v1.9.0 v1.9.9 v1.9.10-pre1 v1.9.10-pre2+metadata unversioned; do
 			echo before $i >status
 			git add status
 			git commit -m "before $i" status
@@ -100,20 +101,21 @@ var queryTests = []struct {
 	{path: queryRepo, query: ">=v0.0.0", vers: "v0.0.0"},
 	{path: queryRepo, query: "v0.0.1", vers: "v0.0.1"},
 	{path: queryRepo, query: "v0.0.1+foo", vers: "v0.0.1"},
-	{path: queryRepo, query: "v0.0.99", err: `unknown revision v0.0.99`},
+	{path: queryRepo, query: "v0.0.99", err: `vcs-test.golang.org/git/querytest.git@v0.0.99: invalid version: unknown revision v0.0.99`},
 	{path: queryRepo, query: "v0", vers: "v0.3.0"},
 	{path: queryRepo, query: "v0.1", vers: "v0.1.2"},
 	{path: queryRepo, query: "v0.2", err: `no matching versions for query "v0.2"`},
 	{path: queryRepo, query: "v0.0", vers: "v0.0.3"},
 	{path: queryRepo, query: "v1.9.10-pre2+metadata", vers: "v1.9.10-pre2.0.20190513201126-42abcb6df8ee"},
+	{path: queryRepo, query: "ed5ffdaa", vers: "v1.9.10-pre2.0.20191220134614-ed5ffdaa1f5e"},
 
 	// golang.org/issue/29262: The major version for for a module without a suffix
 	// should be based on the most recent tag (v1 as appropriate, not v0
 	// unconditionally).
 	{path: queryRepo, query: "42abcb6df8ee", vers: "v1.9.10-pre2.0.20190513201126-42abcb6df8ee"},
 
-	{path: queryRepo, query: "v1.9.10-pre2+wrongmetadata", err: `unknown revision v1.9.10-pre2+wrongmetadata`},
-	{path: queryRepo, query: "v1.9.10-pre2", err: `unknown revision v1.9.10-pre2`},
+	{path: queryRepo, query: "v1.9.10-pre2+wrongmetadata", err: `vcs-test.golang.org/git/querytest.git@v1.9.10-pre2+wrongmetadata: invalid version: unknown revision v1.9.10-pre2+wrongmetadata`},
+	{path: queryRepo, query: "v1.9.10-pre2", err: `vcs-test.golang.org/git/querytest.git@v1.9.10-pre2: invalid version: unknown revision v1.9.10-pre2`},
 	{path: queryRepo, query: "latest", vers: "v1.9.9"},
 	{path: queryRepo, query: "latest", current: "v1.9.10-pre1", vers: "v1.9.9"},
 	{path: queryRepo, query: "upgrade", vers: "v1.9.9"},
@@ -122,7 +124,7 @@ var queryTests = []struct {
 	{path: queryRepo, query: "upgrade", current: "v0.0.0-20190513201126-42abcb6df8ee", vers: "v0.0.0-20190513201126-42abcb6df8ee"},
 	{path: queryRepo, query: "upgrade", allow: "NOMATCH", err: `no matching versions for query "upgrade"`},
 	{path: queryRepo, query: "upgrade", current: "v1.9.9", allow: "NOMATCH", err: `no matching versions for query "upgrade" (current version is v1.9.9)`},
-	{path: queryRepo, query: "upgrade", current: "v1.99.99", err: `unknown revision v1.99.99`},
+	{path: queryRepo, query: "upgrade", current: "v1.99.99", err: `vcs-test.golang.org/git/querytest.git@v1.99.99: invalid version: unknown revision v1.99.99`},
 	{path: queryRepo, query: "patch", current: "", vers: "v1.9.9"},
 	{path: queryRepo, query: "patch", current: "v0.1.0", vers: "v0.1.2"},
 	{path: queryRepo, query: "patch", current: "v1.9.0", vers: "v1.9.9"},
